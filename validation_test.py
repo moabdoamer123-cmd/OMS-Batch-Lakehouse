@@ -24,7 +24,7 @@ def run_validation():
         print("\n🏆 Checking 'Customer CLV Mart' (Top 5)...")
         df_clv = spark.read.parquet(f"{S3_PATHS['gold']}/customer_clv_mart")
         
-        # التعديل هنا: استخدام lifetime_spend بدلاً من total_spent
+       
         df_clv.orderBy(desc("lifetime_spend")).show(5)
 
         # 3️⃣ Test: Data Partitioning
@@ -42,4 +42,3 @@ def run_validation():
 
 if __name__ == "__main__":
     run_validation()
-    
