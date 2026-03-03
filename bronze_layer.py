@@ -1,6 +1,6 @@
 from config import get_spark_session, DB_CONF, S3_PATHS
 
-def run_bronze_full_schema():
+def run_bronze():
   
     spark = get_spark_session("OMS_Full_Bronze_Ingestion")
     spark.sparkContext.setLogLevel("ERROR")
@@ -58,4 +58,4 @@ def run_bronze_full_schema():
         spark.stop()
 
 if __name__ == "__main__":
-    run_bronze_full_schema()
+    run_bronze()
