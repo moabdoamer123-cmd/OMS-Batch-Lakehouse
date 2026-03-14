@@ -1,38 +1,299 @@
-# 🚀 OMS Batch Lakehouse Pipeline (PySpark & MinIO)
+# OMS Batch Lakehouse Pipeline (Apache Spark + Medallion Architecture)
 
-This project implements a high-performance **Medallion Architecture** using **PySpark** to process Order Management System (OMS) data. It transitions data from a PostgreSQL Source to an S3-Compatible Data Lake (MinIO), focusing on scalability, performance tuning, and data integrity.
+## Overview
 
-## 🏗️ Architecture Overview
-The pipeline follows the **Multi-Hop (Medallion)** pattern, ensuring data evolves from raw state to business-ready insights:
+This project demonstrates the design and implementation of an **end-to-end Batch Data Lakehouse pipeline** using **Apache Spark** and the **Medallion Architecture (Bronze → Silver → Gold)**.
 
-1.  **Bronze Layer (Raw):** - **Dynamic Ingestion:** Automatically discovers and extracts all tables from the `oms_core` schema using JDBC metadata.
-    - **Storage:** Persists raw data in **Parquet** format for efficient storage and schema evolution.
+The pipeline extracts operational data from a **PostgreSQL database**, ingests it into a **data lake**, cleans and standardizes the data, and finally produces **analytics-ready data marts** for business insights.
 
-2.  **Silver Layer (Cleaned):**
-    - **Data Standardization:** Implements schema enforcement, deduplication, and string normalization (trimming/casing).
-    - **Metadata:** Adds ingestion timestamps for auditability.
+This project was built as part of my learning journey in **Data Engineering** to understand how modern data platforms ingest, transform, and optimize large-scale datasets.
 
-3.  **Gold Layer (Aggregated & Optimized):**
-    - **Performance Tuning:** Implemented **Broadcast Hash Joins**, achieving a **~92% reduction** in execution time by optimizing Dimension-Fact joins.
-    - **Analytics Marts:** Generates specialized marts like `Daily Revenue`, `Customer CLV`, and `Store Performance` using Spark SQL.
-    - **Partitioning:** Data is partitioned by `order_year` and `order_month` to optimize downstream query performance.
+---
+
+# Table of Contents
+
+* Overview
+* Architecture
+* Project Pipeline
+* Bronze Layer – Raw Data Ingestion
+* Data Exploration
+* Silver Layer – Data Cleaning & Standardization
+* Gold Layer – Business Data Marts
+* Performance Optimization
+* Data Quality & Pipeline Audit
+* Technology Stack
+* Project Structure
+* Key Learning Outcomes
+* Future Improvements
+
+---
+
+# Architecture
+
+The pipeline follows the **Medallion Architecture**, which organizes data into multiple layers to progressively improve data quality and usability.
+
+```
+PostgreSQL (Source System)
+          │
+          ▼
+     Spark JDBC
+          │
+          ▼
+   Bronze Layer (Raw Data)
+          │
+          ▼
+  Silver Layer (Clean Data)
+          │
+          ▼
+   Gold Layer (Business Marts)
+          │
+          ▼
+  Business Analytics & Insights
+```
+
+---
+
+# Project Pipeline
+
+The pipeline processes operational data through multiple stages to transform raw data into analytics-ready datasets.
+
+---
+
+# 1️⃣ Bronze Layer – Raw Data Ingestion
+
+The Bronze layer ingests **raw operational data** from PostgreSQL into the data lake using **Spark JDBC**.
+
+### Key Features
+
+* Dynamically extracts all tables from the source schema
+* Stores raw data in **Parquet format**
+* Preserves the original structure of source tables
+* Creates the foundation for downstream processing
+
+### Output Structure
+
+```
+s3a://bronze/
+    customers
+    orders
+    orderitems
+    products
+    stores
+    employees
+    suppliers
+    dates
+```
+
+---
+
+# 2️⃣ Data Exploration
+
+Before applying transformations, an exploration step analyzes the Bronze datasets.
+
+### Checks Performed
+
+* Schema inspection
+* Null value analysis
+* Record count validation
+* Data sampling
+
+This step helps understand the **structure, quality, and characteristics of the raw data** before cleaning and transformation.
+
+---
+
+# 3️⃣ Silver Layer – Data Cleaning & Standardization
+
+The Silver layer transforms raw data into **clean, structured, and reliable datasets**.
+
+### Transformations Applied
+
+* Removed duplicate records
+* Standardized text fields (lowercase + trimming)
+* Added ingestion timestamps
+* Ensured consistent structured datasets
+
+### Output
+
+```
+s3a://silver/
+    customers
+    orders
+    orderitems
+    products
+    stores
+```
+
+This layer ensures **data quality, consistency, and reliability** before analytics processing.
+
+---
+
+# 4️⃣ Gold Layer – Business Data Marts
+
+The Gold layer creates **analytics-ready datasets** designed for business intelligence and reporting.
+
+Spark SQL **Views** are created to efficiently join datasets and generate analytical models.
+
+### Data Marts Created
+
+#### Daily Revenue Mart
+
+Provides revenue insights at the daily level.
+
+Metrics include:
+
+* Total daily revenue
+* Number of orders per day
+
+---
+
+#### Customer Lifetime Value (CLV)
+
+Calculates the total value generated by each customer.
+
+Metrics include:
+
+* Lifetime customer spend
+* Total number of orders
+
+---
+
+#### Operational Delivery Performance
+
+Analyzes operational order performance across stores.
+
+Metrics include:
+
+* Orders per store
+* Order status distribution
+
+---
+
+# Performance Optimization
+
+To improve query performance, the project compares two Spark join strategies.
+
+### Before Optimization – SortMergeJoin
+
+Default Spark join strategy for large datasets.
+
+Characteristics:
+
+* Requires heavy **data shuffling**
+* Slower execution due to large data movement
+
+---
+
+### After Optimization – BroadcastHashJoin
+
+Small tables are **broadcasted to worker nodes**, avoiding expensive shuffle operations.
+
+Benefits:
+
+* Reduced network shuffle
+* Faster join execution
+* Lower cluster resource usage
+
+---
+
+### Result
+
+By applying broadcast joins where appropriate, the pipeline significantly **reduced query execution time and improved Spark performance**.
+
+---
+
+# Data Quality & Pipeline Audit
+
+A dedicated **pipeline audit process** validates the integrity of the Medallion Architecture.
+
+### Bronze Validation
+
+Performs **source-to-target reconciliation** to ensure that the number of records matches the source PostgreSQL database.
+
+---
+
+### Silver Validation
+
+Quality checks include:
+
+* Data standardization verification
+* Chronological timestamp validation
+* Detection of invalid financial values
+
+---
+
+### Gold Validation
+
+Ensures analytical integrity by validating:
+
+* Revenue calculations
+* Unique customer identifiers
+* Correct aggregation logic
+
+---
+
+# Technology Stack
+
+* Apache Spark
+* PySpark
+* PostgreSQL
+* MinIO (S3-compatible object storage)
+* Parquet
+* Spark SQL
+
+---
+
+# Project Structure
+
+```
+OMS-Batch-Lakehouse
+│
+├── config.py
+├── bronze_pipeline.py
+├── silver_pipeline.py
+├── gold_pipeline.py
+├── data_exploration.py
+├── pipeline_audit.py
+│
+├── jars/
+│
+└── README.md
+```
+
+---
+
+# Key Learning Outcomes
+
+Through this project I learned how to:
+
+* Design **end-to-end data pipelines**
+* Implement **Medallion Lakehouse architecture**
+* Optimize Spark queries using join strategies
+* Build **analytics-ready data marts**
+* Validate **data quality and pipeline integrity**
+
+---
+
+# Future Improvements
+
+Potential enhancements include:
+
+* Workflow orchestration using **Apache Airflow**
+* Incremental data ingestion
+* Data versioning using **Delta Lake**
+* Real-time streaming pipelines
+
+---
+
+# Author
+
+Mohamed Amer
+Computer Science Student | Aspiring Data Engineer
+
+GitHub:
+https://github.com/moabdoamer123-cmd
+
+LinkedIn:
+[(Add your LinkedIn profile link)](https://www.linkedin.com/in/mohamed-amer-217342376?utm_source=share&utm_campaign=share_via&utm_content=profile&utm_medium=ios_app)
 
 
-
-## ⚡ Performance Highlights
-- **Optimization:** Strategic use of `broadcast()` hints for small lookup tables to eliminate expensive Shuffles.
-- **Config-Driven:** Fully modular architecture using a centralized `config.py` for environment-agnostic deployment.
-- **Storage Efficiency:** Leverages Parquet's columnar storage and Snappy compression.
-
-## 🛠️ Tech Stack
-- **Processing Engine:** Apache Spark (PySpark)
-- **Data Lake:** MinIO (S3-Compatible Object Storage)
-- **Source Database:** PostgreSQL
-- **Orchestration:** Modular Python Execution Framework
-- **Infrastructure:** Docker & Docker Compose
-
-## 🚀 How to Run
-
-1. **Spin up the Infrastructure:**
-   ```bash
-   docker-compose up -d
+Slower execution due to large data movement
